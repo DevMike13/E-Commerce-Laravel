@@ -28,7 +28,9 @@ Route::get('/', HomePage::class)->name('user.home');
 Route::get('/cart', HomePage::class);
 Route::get('/products', HomePage::class);
 Route::get('/details', HomePage::class);
-
+Route::get('/twilio/token', [HomePage::class, 'generateToken'])->name('twilio.generate-token');
+Route::post('/twilio/call', [HomePage::class, 'makeCall'])->name('twilio.make-call');
+Route::post('/twilio/voice-response', [HomePage::class, 'twilioResponse'])->name('twilio.voice-response');
 Route::middleware('guest')->group(function () {
     // AUTH
     Route::get('/register', RegisterPage::class)->name('register');

@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\HomePage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -17,3 +18,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::get('/twilio/token', [HomePage::class, 'generateToken']);
+Route::post('/twilio/voice', [HomePage::class, 'twilioResponse']);
+Route::post('/twilio/status', [HomePage::class, 'statusCallback']);
+// Route::post('/twilio/call', [HomePage::class, 'makeCall'])->name('twilio.make-call');

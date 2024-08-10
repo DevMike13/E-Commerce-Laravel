@@ -14,9 +14,19 @@
         <x-notifications />
         @livewire('partials.navbar')
         <main>
+            <button onclick="call()">Call</button>
+            <button onclick="hangup()">Hang Up</button>
             {{ $slot }}
+            <div id="callModal" style="display:none; position: absolute; top: 0; right: 0; background-color: #ffffff">
+                <div>
+                    <p>Incoming call from TEST</p>
+                    <button onclick="acceptCall()">Accept</button>
+                    <button onclick="declineCall()">Decline</button>
+                </div>
+            </div>
         </main>
         @livewire('partials.footer')
+        
         @livewireScripts
         <script src="{{ asset('js/swiper/swiper-bundle.min.js')}}"></script>
         <script>
@@ -82,6 +92,74 @@
                     },
                 },
             });
+        </script>
+         <script src="https://sdk.twilio.com/js/client/v1.13/twilio.min.js"></script>
+         <script>
+            let device;
+        
+            fetch('/twilio/token')
+                .then(response => response.json())
+                .then(data => {
+                    device = new Twilio.Device(data.token, {
+                        codecPreferences: ['opus', 'pcmu'],
+                        debug: true
+                    });
+        
+                    device.on('ready', function(device) {
+                        console.log('Twilio Device is ready');
+                    });
+        
+                    device.on('error', function(error) {
+                        console.error('Twilio Device Error:', error.message);
+                    });
+        
+                    device.on('disconnect', function(connection) {
+                        console.log('Connection was disconnected:', connection);
+                    });
+        
+                    device.on('incoming', function(connection) {
+                        if (device.connections.length === 0) { // Ensure no active connections
+                            document.getElementById('callModal').style.display = 'block';
+                            document.getElementById('callerName').innerText = connection.parameters.From;
+                            window.currentConnection = connection; // Set the current connection
+                        } else {
+                            console.log('Device busy; ignoring incoming invite');
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching token:', error);
+                });
+        
+            function call() {
+                const params = { To: 'DRRMO' }; // Replace with the actual receiver's identity
+                try {
+                    const connection = device.connect(params);
+                    connection.on('error', function(error) {
+                        console.error('Connection Error:', error.message);
+                    });
+                } catch (error) {
+                    console.error('Error during call:', error.message);
+                }
+            }
+        
+            function hangup() {
+                device.disconnectAll();
+            }
+        
+            function acceptCall() {
+            if (window.currentConnection) {
+                window.currentConnection.accept(); // Accept the call
+                document.getElementById('callModal').style.display = 'none'; // Hide the modal
+            } else {
+                console.error('No current connection to accept.');
+            }
+}
+        
+            function declineCall() {
+                window.currentConnection.reject();
+                document.getElementById('callModal').style.display = 'none';
+            }
         </script>
     </body>
 </html>

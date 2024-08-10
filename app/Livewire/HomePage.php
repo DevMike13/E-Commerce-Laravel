@@ -18,6 +18,10 @@ use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Stripe\Checkout\Session;
 use Stripe\Stripe;
+use Twilio\Jwt\AccessToken;
+use Twilio\Jwt\Grants\VoiceGrant;
+use Twilio\Rest\Client;
+use Twilio\TwiML\VoiceResponse;
 use WireUi\Traits\Actions;
 
 #[Title('Home Page - Yeah Fresh')]
@@ -118,6 +122,65 @@ class HomePage extends Component
         app()->setLocale($this->lang);
     }
 
+    public function generateToken(Request $request)
+    {
+        $accountSid = 'XXXXX';
+        $authToken = 'XXXX';
+        $apiKeySid = 'XXXX';
+        $apiKeySecret = 'XXXXX';
+        $twimlAppSid = 'XXXX';
+
+        $identity = 'DRRMO'; // Unique identifier for the user
+
+        // Create an Access Token
+        $token = new AccessToken($accountSid, $apiKeySid, $apiKeySecret, 3600, $identity);
+
+        // Grant access to Voice
+        $voiceGrant = new VoiceGrant();
+        $voiceGrant->setOutgoingApplicationSid($twimlAppSid);
+        $voiceGrant->setIncomingAllow(true); 
+        $token->addGrant($voiceGrant);
+
+        return response()->json(['token' => $token->toJWT()]);
+    }
+
+     // This method handles Twilio Voice Responses
+     public function twilioResponse()
+     {
+         $response = new VoiceResponse();
+         $response->dial()->client('DRRMO'); // 'dr-rmo' is a placeholder for the client ID you want to call
+
+        return response($response, 200)
+            ->header('Content-Type', 'text/xml');
+     }
+ 
+     // This method handles status callbacks
+     public function statusCallback()
+     {
+         return response("<Response/>", 200)
+             ->header('Content-Type', 'text/xml');
+     }
+
+     public function makeCall(Request $request)
+    {
+        $accountSid = 'XXXXXX';
+        $authToken = 'XXXXX';
+        $twilioNumber = +639306558025;
+        $toNumber = +639306558025; // The number to call
+
+        $client = new Client($accountSid, $authToken);
+
+        $call = $client->calls->create(
+            $toNumber,
+            $twilioNumber,
+            [
+                'url' => route('twilio.voice-response')
+            ]
+        );
+
+        return response()->json(['message' => 'Call initiated', 'callSid' => $call->sid]);
+    }
+    
     #[On('update-lang')]
     public function changeLang(){
         $this->lang = FacadesSession::get('locale', app()->getLocale());
